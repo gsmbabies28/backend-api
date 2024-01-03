@@ -12,7 +12,7 @@ const passport = require("passport");
 const session = require("express-session");
 require("./passport");
 
-const port = 4004;
+// const port = 4004;
 
 
 const cors = require("cors");
@@ -52,4 +52,4 @@ mongoose.connection.once("open", () => console.log("Now connected to MongoDB Atl
 
 
 
-app.listen(process.env.PORT || port, () => {console.log(`API is now online on port ${ process.env.PORT ||port}`)});
+app.listen(process.env.PORT || 4004, () => {console.log(`API is now online on port ${process.env.PORT||4004}`)});
