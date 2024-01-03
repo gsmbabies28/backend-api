@@ -12,7 +12,7 @@ const passport = require("passport");
 const session = require("express-session");
 require("./passport");
 
-const port = 4000;
+const port = 4004;
 
 
 const cors = require("cors");
@@ -42,10 +42,14 @@ mongoose.connect("mongodb+srv://admin:admin@b335-manlapaz.efc2cv4.mongodb.net/po
 		useUnifiedTopology: true, 
 	});
 
-
-app.use("/users", userRoutes);
-app.use("/products", productRoutes);
+app.get("/b4", (req, res) => {
+	res.send("Hello world")
+})
+app.use("/b4/users", userRoutes);
+app.use("/b4/products", productRoutes);
 
 mongoose.connection.once("open", () => console.log("Now connected to MongoDB Atlas (   ° ᴗ°)~ð"));
+
+
 
 app.listen(process.env.PORT || port, () => {console.log(`API is now online on port ${ process.env.PORT ||port}`)});
