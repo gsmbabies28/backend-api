@@ -1,8 +1,7 @@
 admin
 
-
-email = testuser2@gmail.com
-password = 123456789
+email = amor@mail.com
+password = 12345678
 
 
 
@@ -10,7 +9,6 @@ password = 123456789
 
 user
 
-email = testuser1@gmail.com
-password = 123456789 (not encrypted)
+email = johnwick@mail.com
+password = johnwick1234
 
-newPassword = 1234567891011

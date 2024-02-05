@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const cartSchema = new mongoose.Schema({
 
 	userId: {
-		type: String,
+		type: mongoose.Schema.Types.String,
 		required: [true, "User Id is Required"],
 	},
 	cartItems: [{
@@ -15,7 +15,7 @@ const cartSchema = new mongoose.Schema({
 			type : Number,
 			required: true
 		},
-		subtotal: {
+		subTotal: {
 			type: Number,
 			required: true
 		}

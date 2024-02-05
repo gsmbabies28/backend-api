@@ -1,193 +1,119 @@
 const Product = require("../models/Product");
+const {validationResult,matchedData}=require("express-validator");
 
-module.exports.addProduct = (req,res) => {
-	Product.findOne({name: req.body.name})
-	.then(result => {
-		if(result){
-			return res.status(409).send({error:"Product already added"})
-		} else {
-			let newProduct = new Product({
-				name : req.body.name,
-				description : req.body.description,
-				price : req.body.price
-			})
-
-			return newProduct.save()
-			.then(result => res.status(201).send({result}))
-			.catch(err => {
-				console.error("Error in adding the product", err)
-				return res.status(500).send({error: "Failed to add the product"})
-			})
-
-
-		}
-	})
+module.exports.addProduct = async (req,res) => {
+	const result = validationResult(req);
+	if(!result.isEmpty()) return res.status(400).send({error: result.array() })
+	const data = matchedData(req);
+	const newProduct = new Product(data)
+	try {
+		const savedProduct = await newProduct.save();
+		if(!savedProduct) return res.status(504).send({msg:"Error in saving"})
+		return res.status(200).send({result: newProduct, msg: "New product added"})
+	} catch (error) {
+		return res.status(500).send({error: error})
+	}
 }
 
-module.exports.getAllActive = (req, res) => {
-    Product.find({isActive: true})
-    .then(result => {
-        if (result.length > 0){
-            return res.status(200).send({ availableProducts : result });
-        }
-        else {
-            return res.status(200).send({ message: 'No product available.' })
-        }
-    })
-    .catch(err => res.status(500).send({ error: 'Error finding available products.' }));
+module.exports.getAllActive = async (req, res) => {
+	try {
+		const findProducts = await Product.find({isActive: true})
+		if(!findProducts) return res.status(404).send({msg: "Empty Products"});
+		return res.status(200).send({result: findProducts})
+	} catch (error) {
+		return res.status(500).send({error:error})
+	}
 };
 
-module.exports.getAllProducts = (req,res) => {
-	return Product.find({})
-	.then(result => { res.status(200).send({products: result})})
-	.catch(error => res.status(500).send({error: 'Error finding all products'}));
+module.exports.getAllProducts = async (req,res) => {
+	try {
+		const findProducts = await Product.find()
+		if(!findProducts) return res.status(404).send({msg: "Empty Products"});
+		return res.status(200).send({results: findProducts});
+	} catch (error) {
+		return res.status(500).send({error: error})
+	}
 }
 
 
-module.exports.getProduct = (req,res) => {
-	Product.findById(req.params.productId)
-	.then (result => {
-		if(!result){
-			return res.status(404).send({error: "Product not found"})
-		}
-		else{
-			return res.status(200).send({addedProduct : result})
-		}
-	})
-	.catch(err => {
-		console.error("Error in retrieving the product", err);
-		return res.status(500).send({error: "Failed to fetch product"})
-	})
+module.exports.getProduct = async (req,res) => {
+	try {
+		const result = validationResult(req);
+		if(!result.isEmpty()) return res.status(400).send({error: result.array()})
+		const {productId} = matchedData(req);
+		const findProduct = await Product.findOne({_id:productId, isActive:true})
+		return res.status(200).send({result: findProduct })
+	} catch (error) {
+		return res.status(500).send({error:error})
+	} 
 }
 
-module.exports.updateProduct = (req,res) => {
+module.exports.updateProduct = async (req,res) => {
+	const result = validationResult(req);
+	if(!result.isEmpty()) return res.status(400).send({error: result.array()})
+	const data = matchedData(req);
 
-	let updatedProduct = {
-		name : req.body.name,
-		description : req.body.description,
-		price : req.body.price
+	try {
+		const updatedProduct = await Product.findByIdAndUpdate(data.productId, {name: data.name,description:data.description,price:data.price},{new: true});
+		if(!updatedProduct) return res.status(404).send({msg: "Cannot find the Product"});
+		return res.status(200).send({result:updatedProduct, msg:"Updated Successfully!"})
+	} catch (error) {
+		return res.status(500).send({error: error})
 	}
 
-	if (!req.body.name || !req.body.description || !req.body.price) {
-	     return res.status(400).send({ error: "Missing required fields" });
-	 }
-
-
-	return Product.findByIdAndUpdate(req.params.productId, updatedProduct, {new:true})
-	.then(result => {
-		if(!result){
-			return res.status(404).send({error: "Product not found"})
-		} else {
-			return res.status(200).send({updatedProduct : result})
-		}
-	})
-	.catch(err => {
-			console.log("Error in updating a product: ", err)
-			return res.status(500).send({error: "Error in updating a product"})
-	})
 }
 
-module.exports.archiveProduct = (req,res) => {
-	let archivedProduct = {
-		isActive : false
+module.exports.archiveProduct = async (req,res) => {
+	try {
+		const result = validationResult(req);
+		if(!result.isEmpty()) return res.status(400).send({error: result.array()})
+		const data = matchedData(req);
+		const findProduct = await Product.findByIdAndUpdate(data.productId, {$set:{isActive: false}},{new:true});
+		if(!findProduct) return res.status(404).send({msg: "Cannot find the product"})
+		return res.status(200).send({msg:"Archived success!"})
+	} catch (error) {
+		return res.status(500).send({ error: error })
 	}
-
-	return Product.findByIdAndUpdate(req.params.productId, archivedProduct)
-	.then(result => {
-		if(!result){
-			return res.status(404).send({error: "Product not found"})
-		} else {
-			if(result.isActive === false){
-				return res.status(208).send({message :"Product already archived."})
-			}else {
-				result.isActive = false
-				return res.status(200).send({
-				message: "Product archived successfully",
-				archiveProduct: result
-				})
-			}
-			
-		}	
-	})
-	.catch(err => {
-			console.log("Error in archiving a product: ", err)
-			return res.status(500).send({error: "Error in archiving a product"})
-		})
 }
 
-module.exports.activateProduct = (req,res) => {
-	let activatedProduct = {
-		isActive : true
+module.exports.activateProduct = async (req,res) => {
+	try {
+		const result = validationResult(req);
+		if(!result.isEmpty()) return res.status(400).send({error: result.array()})
+		const data = matchedData(req);
+		const findProduct = await Product.findByIdAndUpdate(data.productId, {$set:{isActive: true}},{new:true});
+		if(!findProduct) return res.status(404).send({msg: "Cannot find the product"})
+		return res.status(200).send({msg:"Activated success!"})
+	} catch (error) {
+		return res.status(500).send({ error: error })
 	}
-
-	return Product.findByIdAndUpdate(req.params.productId, activatedProduct)
-	.then(result => {
-		if(!result){
-			return res.status(404).send({error: "Product not found"})
-		} else {
-			if(result.isActive === true){
-				return res.status(208).send({message: "Product already activated."})
-			}else {
-				result.isActive = true
-				return res.status(200).send({
-				message: "Product activated successfully",
-				activateProduct: result
-				})
-			}
-			
-		}	
-	})
-	.catch(err => {
-			console.log("Error in activating a product: ", err)
-			return res.status(500).send({error: "Error in activating a product"})
-		})
 }
 
 // search by name
 module.exports.searchByName = async (req, res) => {
     try {
-        const { name } = req.body;
-
-        if (!name) {
-            return res.status(400).send({ error: "Product name is required" });
-        }
-
-        // Case-insensitive search by product name
-        const products = await Product.find({ name: { $regex: new RegExp(name, 'i') } });
-
-        if (!products || products.length === 0) {
-            return res.status(404).send({ error: "No products found with the given name" });
-        }
-
-        res.status(200).send({ products });
+		const result = validationResult(req)
+		if(!result.isEmpty()) return res.status(400).send({error: result.array()});
+		const data = matchedData(req);
+		const findProducts = await Product.find({name:{$regex: new RegExp(`^${data.name}`,"i")}, isActive:true});
+		if(!findProducts.length) return res.status(404).send({msg:"Products not found!"})
+		return res.status(200).send({result: findProducts})
     } catch (err) {
-        console.error(err);
-        res.status(500).send({ error: err.message || "Internal Server Error" });
+        res.status(500).send({ error: err });
     }
 };
 
 // search by price
 module.exports.searchByPrice = async (req, res) => {
-    try {
-        const { minPrice, maxPrice } = req.body;
-
-        if (!minPrice || !maxPrice || isNaN(minPrice) || isNaN(maxPrice)) {
-            return res.status(400).send({ error: "Invalid price range provided" });
-        }
-
-        // Search for products within the specified price range
-        const products = await Product.find({
-            price: { $gte: minPrice, $lte: maxPrice }
-        });
-
-        if (!products || products.length === 0) {
-            return res.status(404).send({ error: "No products found within the given price range" });
-        }
-
-        res.status(200).send({ products });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send({ error: err.message || "Internal Server Error" });
-    }
+	const result = validationResult(req);
+	if(!result.isEmpty()) return res.status(400).send({error: result.array()});
+	const data = matchedData(req)
+	try {
+		const findProducts = await Product.find({price:{$gte: data.min, $lte: data.max}})
+		if(!findProducts.length) return res.status(404).send({msg: "No product matched!"})
+		return res.status(200).send({result: findProducts});
+	} catch (error) {
+		return res.status(500).send({error:error})
+	}
 };
 
